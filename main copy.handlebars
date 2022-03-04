@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="sp">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="reciboConsumo" content=width="device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Recibo de consumo Cambia y Gana</title>
+    </head>
+    <body>
+        <h1>Recibo de consumo Cambia y Gana</h1>
+        <div id="cuadro">
+            <b>Concesionario: </b> {{Concesionario}}<br>
+            <b>Placas: </b> {{Placa}}<br>
+            <b>Núm. Recibo: </b> {{NumTicket}}<br><br>
+            <table>
+                <tr>
+                    <td>Litros</td> <td>{{Cantidad}}</td>
+                </tr>
+                <tr>
+                    <td>Precio</td><td>{{PrecioGasLP}}</td>
+                </tr>
+                    <td>Importe</td><td>{{ImportePagar}}</td>
+                </tr>
+                </tr>
+                    <td>Ahorro Propietario:</td><td>{{ImporteAhorroPropietario}}</td>
+                </tr>
+                </tr>
+                    <td>Ahorro Concesionario:</td><td>{{ImporteAhorroConcesionario}}</td>
+                </tr>
+                </tr>
+                    <td>Beneficios:</td><td>{{ImporteBeneficiosConversion}}</td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

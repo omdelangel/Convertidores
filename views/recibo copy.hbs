@@ -1,0 +1,48 @@
+<body>
+    <img class="logo" width="500" src="cid:logo" alt="CambiayGana" >
+    <h2 style="margin-left:40">Recibo de consumo</h2>
+    <style>
+    	.pleca {
+    		width:500;
+    		height:30;
+    		font-family:Arial; 
+    		font-size: 9; 
+    		font-style: italic; 
+    		background-color: #001C71; 
+    		text-align: center;
+    		color:#E6E6E6
+    	}	
+    	
+    </style>
+    <div id="cuadro" style="margin-left:40px; font-family:Arial">
+    	<hr style="height:2px;border-width:0;color:gray;background-color:gray;width:440px;margin-left:0;text-align:left">
+      CONCESIONARIO: {{Concesionario}}<br>
+      PLACAS: {{Placa}}<br>
+      RECIBO: {{NumTicket}}<br><br>
+      <table width="460px">
+          <tr style="background-color:#E6E6E6">
+              <td>Litros</td> <td align="right">{{Cantidad}}</td>
+          </tr>
+          <tr>
+              <td>Precio</td><td align="right">$ {{PrecioGasLP}}</td>
+          </tr>
+          <tr style="background-color:#E6E6E6">
+              <td>Importe</td><td align="right">$ {{ImportePagar}}</td>
+          </tr>
+          <tr>
+              <td>Ahorro Propietario:</td><td align="right">$ {{ImporteAhorroPropietario}}</td>
+          </tr>
+          <tr style="background-color:#E6E6E6">
+              <td>Ahorro Concesionario:</td><td align="right">$ {{ImporteAhorroConcesionario:}}</td>
+          </tr>
+          <tr>
+              <td>Beneficios:</td><td align="right">$ {{ImporteBeneficiosConversion}}</td>
+          </tr>
+      </table>
+      <br><br>                                                                                                                                                             
+      <p style=" margin-left:10px; color: Red; font-style:italic; font-weight:bold">**Este correo fue generado de forma automática, no envíe <br>una respuesta al mismo</p>
+    </div>
+    <div id="pleca" class="pleca">
+    	<br>Copyright @ 2021, Cambia y Gana
+    </div>
+</body>  
