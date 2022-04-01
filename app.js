@@ -9,10 +9,12 @@ var dateFormat = require('dateformat');
 require("dotenv").config();
 
 const {aplicaFondoReserva, avisosBajoConsumo, avisosCitas, 
-       cortePeriodo, marcaReciboEnviado, obtenDatosRecibos } = require("./procesos");
+       cortePeriodo, marcaReciboEnviado, obtenDatosRecibos, 
+       obtenInformacionMensajes, marcaMensajeEnviado } = require("./procesos");
 
 const log = require("./logs");
 const { getMaxListeners } = require("./logs");
+const { json } = require("express/lib/response");
 
 // const dateFmt = require('dateformat');
 
@@ -28,7 +30,10 @@ const connection = mysql.createConnection({
 });
 
 connection.connect((err) => {
-    if(err) throw err;
+    if(err) {
+        console.log('HOST: ' + process.env.DBHOST +"; user: " + process.env.DBUSER + "; pwd: "+ process.env.DBPASSWORD +"; DB: " + process.env.DBDATABASE );
+        throw err;
+    }
       console.log("Connected to database: " + process.env.DBHOST+"/"+ process.env.DBDATABASE);
 });
 
@@ -203,8 +208,55 @@ cron.schedule('22 * 23 * * *',() => {
     });
 });
 
+
+// Proceso de envio de notificación por bajo consumo
+cron.schedule('5,35 * 19 * * *',() => {
+    console.log(new Date().toString() + " Corre proceso para notificaciones por bajo consumo");
+    obtenInformacionMensajes(connection, {tipoNotifica: "6"} ,result => {
+        console.log("dentro de obtenDatosBajoConsumo App");
+        const logName = "BajoConsumo_" + new Date().toString().split(" ").join("_")+".json";
+        console.log(result);
+        //log.setItem(logName, JSON.stringify(result));
+
+        var Datos = JSON.stringify(result);    
+        let jsonParsedArray = JSON.parse(Datos);
+        // console.log("JSON PARSED \n" + jsonParsedArray);
+        
+        for (let index = 0; index < jsonParsedArray[0].length; index++) {
+            var element = jsonParsedArray[0][index];
+            // console.log("ELEMENT \n" + JSON.stringify(element));
+
+            mailOptions.to = element.Detalle.emailConcesionario;
+            mailOptions.subject = "Notificación de bajo consumo " ;
+            mailOptions.template = 'bajo-consumo'
+            mailOptions.context = element.Detalle;
+            console.log(mailOptions);
+            
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    //result.status(500).send(error.message);
+                    console.log('Correo inválido' + err.message);
+                } else {
+                    //result.status(200).json(req.body);
+                    console.log("Correo enviado");
+                    // console.log(transporter.template);
+
+                    marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
+                        console.log("marcando notificación como enviado");
+                        console.log(JSON.stringify(result));
+                        //log.setItem(logName, JSON.stringify(result));
+                    });
+                }
+            });
+        };
+
+    });
+});
+
+
 // Proceso de envio de notificación de Citas
-cron.schedule('0 */2 * * * *',() => {
+//cron.schedule('0 */2 * * * *',() => {
+cron.schedule('0 */50 * * * *',() => {
     let ts = new Date();
     // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
     console.log(ts.toString() + " Corre proceso para notificaciones de Citas");

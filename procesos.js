@@ -64,4 +64,35 @@ function marcaReciboEnviado(connection, data, callback) {
     });
 }
 
-module.exports = {aplicaFondoReserva, avisosBajoConsumo, avisosCitas, cortePeriodo, marcaReciboEnviado, obtenDatosRecibos };
+function obtenInformacionMensajes(connection, data, callback) {
+    let spSQL = "Call spObtenInformacionMensajes(?)";
+    let query =mysql.format(spSQL, [data.tipoNotifica])
+    console.log(query);
+    
+    connection.query(query, function(err, result) {
+        if (err) throw err;
+        callback(result);
+    });
+}
+
+function marcaMensajeEnviado(connection, data, callback) {
+    let spSQL = "Call spMarcaMensajeEnviado(?)";
+    let query =mysql.format(spSQL, [data.IdMensaje])
+    console.log(query);
+    
+    connection.query(query, function(err, result) {
+        if (err) throw err;
+        callback(result);
+    });
+}
+
+module.exports = {
+    aplicaFondoReserva, 
+    avisosBajoConsumo, 
+    avisosCitas, 
+    cortePeriodo, 
+    marcaReciboEnviado, 
+    obtenDatosRecibos, 
+    obtenInformacionMensajes,
+    marcaMensajeEnviado 
+};
