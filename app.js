@@ -29,6 +29,10 @@ const connection = mysql.createConnection({
     
 });
 
+/*-------------  Configuración para Mensajería SMS, WhatsApp  ----------------*/
+const twClient = require('twilio')(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN); 
+/*-----------------------------------------------------------------------------*/
+
 connection.connect((err) => {
     if(err) {
         console.log('HOST: ' + process.env.DBHOST +"; user: " + process.env.DBUSER + "; pwd: "+ process.env.DBPASSWORD +"; DB: " + process.env.DBDATABASE );
@@ -478,6 +482,39 @@ cron.schedule('0 * * * * *',() => {
                         });
                     }
                 });
+
+                console.log('Preparando SMS Cita de Evaluación (WhatsApp).');
+                twClient.messages 
+                    .create({ 
+                        body: '*CITA DE EVALUACIÓN* \n\n *TALER:* '+ element.Detalle.Taller +'\n'+
+                              '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                              '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                              '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                              '_Le solicitamos presentarse 15 mins. antes de su cita._',
+                        from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
+                        //to: 'whatsapp:+5215522543522' 
+                        //to: 'whatsapp:+5215618204508' 
+                        to: 'whatsapp:+521'+element.Detalle.celular
+                    }) 
+                    .then(message => console.log(message.sid)) 
+                    .done();
+                
+                console.log('Preparando Cita de Evaluación (SMS).');
+                twClient.messages
+                    .create({
+                        body: 'CITA DE EVALUACIÓN \n\n '+
+                              'TALER: '+ element.Detalle.Taller +'\n'+
+                              'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                              'Num. Cita:' + element.Detalle.IdCita +'\n'+
+                              'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                              'Le solicitamos presentarse 15 mins. antes de su cita.',
+                        //messagingServiceSid: 'MG47d9401c0eba00f148a46798067d7c6a',
+                        from: process.env.SMS_SENDER,
+                        //to: 'whatsapp:+5215522543522' 
+                        //to: 'whatsapp:+5215618204508' 
+                        to: '+521'+ element.Detalle.celular
+                     })
+                    .then(message => console.log('SMS ID '+ message.sid));
             };
     
         });
