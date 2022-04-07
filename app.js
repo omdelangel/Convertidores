@@ -31,6 +31,7 @@ const connection = mysql.createConnection({
 
 /*-------------  Configuración para Mensajería SMS, WhatsApp  ----------------*/
 const twClient = require('twilio')(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN); 
+const twClientSms = require('twilio')(process.env.ACCOUNT_SID, process.env.AUTH_TOKEN); 
 /*-----------------------------------------------------------------------------*/
 
 connection.connect((err) => {
@@ -215,6 +216,36 @@ cron.schedule('20 5 23 * * *',() => {
                     });
                 }
             });
+
+            const whatsBody =  '*COMPROBANTE DE CONSUMO* \n\n '+
+                '*Concesionario:* '+element.Detalle.Concesionario + '\n'+ 
+                '*Placas:* '+ element.Detalle.Placa +'\n'+
+                '*Recibo:* '+ element.Detalle.NumTicket +'\n'+
+                '*------------------------------------------*\n'+
+                '*Litros:* '+ element.Detalle.Cantidad +'\n'+
+                '*Precio:* '+ element.Detalle.PrecioGasLP +'\n'+
+                '*Importe:* ' + element.Detalle.ImportePagar + '\n'+
+                '*Ahorro Propietario:* '+ element.Detalle.ImporteAhorroPropietario +'\n'+ 
+                '*Ahorro Concesionario:* '+ element.Detalle.ImporteAhorroConcesionario +'\n'
+                '*Beneficios:* ' + element.Detalle.ImporteBeneficiosConversion +'\n';
+                
+                
+
+            const smsBody =  'COMPROBANTE DE CONSUMO* \n\n '+
+                'Concesionario: '+element.Detalle.Concesionario + '\n'+ 
+                'Placas: '+ element.Detalle.Placa +'\n'+
+                'Recibo: '+ element.Detalle.NumTicket +'\n'+
+                '------------------------------------------\n'+
+                'Litros: '+ element.Detalle.Cantidad +'\n'+
+                'Precio: '+ element.Detalle.PrecioGasLP +'\n'+
+                'Importe: ' + element.Detalle.ImportePagar + '\n'+
+                'Ahorro Propietario: '+ element.Detalle.ImporteAhorroPropietario +'\n'+ 
+                'Ahorro Concesionario: '+ element.Detalle.ImporteAhorroConcesionario +'\n'
+                'Beneficios: ' + element.Detalle.ImporteBeneficiosConversion +'\n'
+                
+
+            console.log('Preparando envio de OMPROBANTE DE CONSUMO a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         }
     });
 
@@ -225,7 +256,7 @@ cron.schedule('20 5 23 * * *',() => {
 // Proceso de envio de comprobante de pago (no consumo)
 // -----------------------------------------------------------------
 cron.schedule('20 5 23 * * *',() => {
-    console.log(new Date().toString() + " Corre proceso Obtener información para emision de recibos - email");
+    console.log(new Date().toString() + " Corre proceso Obtener información para emision de comprobantes de pago (No consumo) - email");
     //console.log(`${BASE.URL}`);
     //let dia = dateFmt(new Date(), "yyyy-mm-dd");
     //let dia = "2021-10-15";
@@ -261,6 +292,29 @@ cron.schedule('20 5 23 * * *',() => {
                     });
                 }
             });
+
+            const whatsBody =  '*COMPROBANTE DE PAGO* \n\n '+
+                '*Concesionario:* '+element.Detalle.Concesionario + '\n'+ 
+                '*Placas:* '+ element.Detalle.Placa +'\n'+
+                '*Recibo:* '+ element.Detalle.NumTicket +'\n'+
+                '*------------------------------------------*\n'+
+                '*Litros:* '+ element.Detalle.Cantidad +'\n'+
+                '*Precio:* '+ element.Detalle.FactorPago +'\n'+
+                '*Importe:* ' + element.Detalle.ImportePagar 
+                
+
+            const smsBody =  'COMPROBANTE DE PAGO \n\n '+
+                'Concesionario: '+element.Detalle.Concesionario + '\n'+ 
+                'Placas: '+ element.Detalle.Placa +'\n'+
+                'Recibo: '+ element.Detalle.NumTicket +'\n'+
+                '------------------------------------------\n'+
+                'Litros: '+ element.Detalle.Cantidad +'\n'+
+                'Precio: '+ element.Detalle.FactorPago +'\n'+
+                'Importe: ' + element.Detalle.ImportePagar 
+                
+
+            console.log('Preparando envio de COMPROBANTE DE PAGO a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         }
     });
 
@@ -324,7 +378,6 @@ cron.schedule('5,35 * 19 * * *',() => {
         
         for (let index = 0; index < jsonParsedArray[0].length; index++) {
             var element = jsonParsedArray[0][index];
-            // console.log("ELEMENT \n" + JSON.stringify(element));
 
             mailOptions.to = element.Detalle.emailConcesionario;
             mailOptions.subject = "Notificación de bajo consumo " ;
@@ -348,6 +401,30 @@ cron.schedule('5,35 * 19 * * *',() => {
                     });
                 }
             });
+
+            const whatsBody =  '*NOTIFICACIÓN DE BAJO CONSUMO* \n\n '+
+                'Le informamos que el consumo de gas que ha realizado en el periodo, '+
+                'se encuentra por debajo del promedio requerido para cumplir con el '+
+                'consumo mensual pactado.\n\n'
+                '*Consumo mensual pactado:* '+ element.Detalle.Cuota +'\n'+
+                '*Consumo actual:* ' + element.Detalle.Consumo + '\n'+
+                '*Consumo por cubrir:* '+ element.Detalle.Pendiente +'\n'+ 
+                '*Ahorro Propietario:* ' + element.Detalle.AhorroPropietario +'\n'+
+                '*Ahorro Concesionario:* '+ element.Detalle.AhorroConcesionario;
+                
+
+            const smsBody =  'NOTIFICACIÓN DE BAJO CONSUMO \n\n '+
+                'Le informamos que presenta un adeudo por cumbistible "No consumido" conforme a la cuota establecida '+
+                'en el contrato y que no logró cubrirse del ahorro acumulado.\n\n'
+                'Consumo mensual pactado: '+ element.Detalle.Cuota +'\n'+
+                'Consumo actual: ' + element.Detalle.Consumo + '\n'+
+                'Consumo por cubrir: '+ element.Detalle.Pendiente +'\n'+ 
+                'Ahorro Propietario: ' + element.Detalle.AhorroPropietario +'\n'+
+                'Ahorro Concesionario: '+ element.Detalle.AhorroConcesionario ;
+                
+
+            console.log('Preparando envio de NOTIFICACIÓN DE BAJO CONSUMO a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         };
 
     });
@@ -392,6 +469,28 @@ cron.schedule('5 */5 17 * * *',() => {
                     });
                 }
             });
+
+            const whatsBody =  '*NOTIFICACIÓN DE ADEUDO* \n\n '+
+                'Le informamos que presenta un adeudo por cumbistible "No consumido" conforme a la cuota establecida '+
+                'en el contrato y que no logró cubrirse del ahorro acumulado.\n\n'
+                '*Consumo mensual pactado:* '+ element.Detalle.Cuota +'\n'+
+                '*Consumo del periodo:* ' + element.Detalle.Consumo + '\n'+
+                '*Litros cubiertos por el ahorro:* ' + element.Detalle.litrosAhorro +'\n'+
+                '*Litros pendientes de cubrir:* '+ element.Detalle.LitrosNoConsumo +'\n\n'+ 
+                '_Le solicitamos presentarse 15 mins. antes de su cita._';
+
+            const smsBody =  'NOTIFICACIÓN DE ADEUDO \n\n '+
+                'Le informamos que presenta un adeudo por cumbistible "No consumido" conforme a la cuota establecida '+
+                'en el contrato y que no logró cubrirse del ahorro acumulado.\n\n'
+                'Consumo mensual pactado: '+ element.Detalle.Cuota +'\n'+
+                'Consumo del periodo: ' + element.Detalle.Consumo + '\n'+
+                'Litros cubiertos por el ahorro: ' + element.Detalle.litrosAhorro +'\n'+
+                'Litros pendientes de cubrir: '+ element.Detalle.LitrosNoConsumo +'\n\n'+ 
+                'Le solicitamos presentarse 15 mins. antes de su cita.';
+
+            console.log('Preparando envio de NOTIFICACIÓN DE ADEUDO a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
+
         };
 
     });
@@ -443,7 +542,7 @@ cron.schedule('0 * * * * *',() => {
 });
 */
 // Proceso de envio de notificación de Citas
-    cron.schedule('0 */2 * * * *',() => {
+    cron.schedule('0 */1 * * * *',() => {
         let ts = new Date();
         // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
         console.log(ts.toString() + " Corre proceso para notificaciones de Citas");
@@ -483,40 +582,24 @@ cron.schedule('0 * * * * *',() => {
                     }
                 });
 
-                console.log('Preparando SMS Cita de Evaluación (WhatsApp).');
-                twClient.messages 
-                    .create({ 
-                        body: '*CITA DE EVALUACIÓN* \n\n *TALER:* '+ element.Detalle.Taller +'\n'+
-                              '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
-                              '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
-                              '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
-                              '_Le solicitamos presentarse 15 mins. antes de su cita._',
-                        from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
-                        //to: 'whatsapp:+5215522543522' 
-                        //to: 'whatsapp:+5215618204508' 
-                        to: 'whatsapp:+521'+element.Detalle.celular
-                    }) 
-                    .then(message => console.log(message.sid)) 
-                    .done();
-                
-                console.log('Preparando Cita de Evaluación (SMS).');
-                twClient.messages
-                    .create({
-                        body: 'CITA DE EVALUACIÓN \n\n '+
-                              'TALER: '+ element.Detalle.Taller +'\n'+
-                              'Domicilio: ' + element.Detalle.Domicilio + '\n'+
-                              'Num. Cita:' + element.Detalle.IdCita +'\n'+
-                              'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
-                              'Le solicitamos presentarse 15 mins. antes de su cita.',
-                        //messagingServiceSid: 'MG47d9401c0eba00f148a46798067d7c6a',
-                        from: process.env.SMS_SENDER,
-                        //to: 'whatsapp:+5215522543522' 
-                        //to: 'whatsapp:+5215618204508' 
-                        to: '+521'+ element.Detalle.celular
-                     })
-                    .then(message => console.log('SMS ID '+ message.sid));
+                const whatsBody =  '*CITA DE EVALUACIÓN* \n\n '+
+                '*TALER:* '+ element.Detalle.Taller +'\n'+
+                '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                '_Le solicitamos presentarse 15 mins. antes de su cita._';
+
+                const smsBody =  'CITA DE EVALUACIÓN \n\n '+
+                    'TALER: '+ element.Detalle.Taller +'\n'+
+                    'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                    'Num. Cita: ' + element.Detalle.IdCita +'\n'+
+                    'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                    'Le solicitamos presentarse 15 mins. antes de su cita.';
+
+                console.log('Preparando envio de CITA DE EVALUACIÓN a celular: ' + element.Detalle.celular);
+                enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
+
             };
-    
         });
     });
     
@@ -559,8 +642,25 @@ cron.schedule('0 */5 * * * *',() => {
                         console.log(JSON.stringify(result));
                     
                     });
+
                 }
             });
+            const whatsBody =  '*CITA DE INSTALACIÓN* \n\n '+
+                '*TALER:* '+ element.Detalle.Taller +'\n'+
+                '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                '_Le solicitamos presentarse 15 mins. antes de su cita._';
+
+            const smsBody =  'CITA DE INSTALACIÓN \n\n '+
+                'TALER: '+ element.Detalle.Taller +'\n'+
+                'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                'Num. Cita: ' + element.Detalle.IdCita +'\n'+
+                'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                'Le solicitamos presentarse 15 mins. antes de su cita.';
+
+            console.log('Preparando envio de CITA DE INSTALACIÓN a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         };
 
     });
@@ -608,12 +708,57 @@ cron.schedule('0 */6 * * * *',() => {
                     });
                 }
             });
+
+            const whatsBody =  '*CITA DE REMOCIÓN DE CONVERTIDOR* \n\n '+
+                '*TALER:* '+ element.Detalle.Taller +'\n'+
+                '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                '_Le solicitamos presentarse 15 mins. antes de su cita._';
+
+            const smsBody =  'CITA PARA REMOCIÓN DE CONVERTIDOR\n\n '+
+                'TALER: '+ element.Detalle.Taller +'\n'+
+                'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                'Num. Cita: ' + element.Detalle.IdCita +'\n'+
+                'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                'Le solicitamos presentarse 15 mins. antes de su cita.';
+
+            console.log('Preparando envio de CITA DE REMOCIÓN a celular: ' + element.Detalle.celular);
+            enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         };
 
     });
 });
 
+/*-------------------------------------------------------------------------------
+//                     Envia mensajes Cel
+/*-------------------------------------------------------------------------------*/
+function enviaMensajesCel (celNumber , whatsBody , smsBody ) {
+    twClient.messages
+    .create({
+                body: whatsBody,
+                from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
+                to: 'whatsapp:+521' + celNumber
+            }) 
+    .then(message => console.log('WhatsApp ID : ' + message.sid +' '+ message.status))
+    .catch(e => console.error('Mensaje WhatsApp no enviado: '+ e)) 
+    .done();
+                
+    twClientSms.messages
+    .create({
+                body: smsBody,
+                //messagingServiceSid: 'MG47d9401c0eba00f148a46798067d7c6a',
+                from: process.env.SMS_SENDER,
+                statusCallback: 'http://8256-200-194-5-98.ngrok.io/status-msg',
+                to: '+521'+ celNumber
+            })
+    .then(message => console.log('SMS ID '+ message.sid+' '+ message.status))
+    //.catch(e => console.error(`[Cita de evaluaión - SMS] : ${e.message}`, e)));
+    .catch(e => console.error('Mensaje SMS no enviado: '+ e));
 
+}
+
+//--------------------------------------------------------------------------------//
 
 app.listen(3000, () => {
     console.log("Servidor en el puerto 3000");
