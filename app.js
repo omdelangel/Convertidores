@@ -132,6 +132,9 @@ var mailOptions = {
     ]
 
 };
+
+
+
 /*
 // Proceso de envio de recibos
 cron.schedule('20 5 23 * * *',() => {
@@ -543,13 +546,13 @@ cron.schedule('0 * * * * *',() => {
 */
 // Proceso de envio de notificación de Citas
     cron.schedule('0 */1 * * * *',() => {
-        let ts = new Date();
+        //let ts = new Date();
         // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
-        console.log(ts.toString() + " Corre proceso para notificaciones de Citas");
+        escribeLog("Corre proceso para notificaciones de Citas");
         obtenInformacionMensajes(connection, {tipoNotifica: "1"} ,result => {
-            console.log("dentro de obtenDatosCitas App");
+            escribeLog("dentro de obtenDatosCitas App");
             //const logName = "Citas_" + new Date().toString().split(" ").join("_")+".json";
-            console.log(result);
+            escribeLog(result);
             //log.setItem(logName, JSON.stringify(result));
     
             var Datos = JSON.stringify(result);    
@@ -565,18 +568,18 @@ cron.schedule('0 * * * * *',() => {
                 mailOptions.subject = "Cita Cambia y Gana " ;
                 mailOptions.template = 'Cita'
                 mailOptions.context = element.Detalle;
-                console.log(mailOptions);
+                escribeLog(mailOptions);
                 
                 transporter.sendMail(mailOptions, (err, info) => {
                     if (err) {
                         //result.status(500).send(error.message);
-                        console.log('Correo inválido' + err.message);
+                        escribeError('Correo inválido' + err.message);
                     } else {
-                        console.log("Correo enviado");
+                        escribeLog("Correo enviado");
                         
                         marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
-                            console.log("marcando notificación como enviado");
-                            console.log(JSON.stringify(result));
+                            escribeLog("marcando notificación como enviado");
+                            escribeLog(JSON.stringify(result));
                         
                         });
                     }
@@ -596,25 +599,153 @@ cron.schedule('0 * * * * *',() => {
                     'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
                     'Le solicitamos presentarse 15 mins. antes de su cita.';
 
-                console.log('Preparando envio de CITA DE EVALUACIÓN a celular: ' + element.Detalle.celular);
+                escribeLog('Preparando envio de CITA DE EVALUACIÓN a celular: ' + element.Detalle.celular);
                 enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
 
             };
         });
     });
+
+    // ---------------------------------------------------------------------
+    // Proceso de envio de notificación de Citas Canceladas
+    // ---------------------------------------------------------------------
+
+    cron.schedule('0 */2 * * * *',() => {
+        let ts = new Date();
+        // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
+        escribeLog("Corre proceso para notificaciones de Citas Canceladas");
+        obtenInformacionMensajes(connection, {tipoNotifica: "10"} ,result => {
+            escribeLog("dentro de obtenDatosCitasCanceladas App");
+            
+            escribeLog(result);
     
+            var Datos = JSON.stringify(result);    
+            let jsonParsedArray = JSON.parse(Datos);
+            
+            
+            for (let index = 0; index < jsonParsedArray[0].length; index++) {
+                const element = jsonParsedArray[0][index];
+                
+                element.Fecha = dateFormat(element.Detalle.Fecha, "dd/mm/yyyy HH:MM:ss")
+                element.FechaRegistro = dateFormat(element.Detalle.FechaRegistro, "dd/mm/yyyy HH:MM:ss")
+                mailOptions.to = element.Detalle.email;
+                mailOptions.subject = "Cita Cambia y Gana CANCELADA " ;
+                mailOptions.template = 'CitaCancela'
+                mailOptions.context = element.Detalle;
+                console.log(mailOptions);
+                
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) {
+                        //result.status(500).send(error.message);
+                        escribeError('Correo inválido' + err.message);
+                    } else {
+                        escribeLog("Correo enviado");
+                        
+                        marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
+                            escribeLog("marcando notificación como enviado");
+                            escribeLog(JSON.stringify(result));
+                        
+                        });
+                    }
+                });
+
+                const whatsBody =  '*CITA DE EVALUACIÓN CANCELADA* \n\n '+
+                '*TALER:* '+ element.Detalle.Taller +'\n'+
+                '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                '_Le informamos que su cita ha sido cancelada._';
+
+                const smsBody =  'CITA DE EVALUACIÓN CANCELADA\n\n '+
+                    'TALER: '+ element.Detalle.Taller +'\n'+
+                    'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                    'Num. Cita: ' + element.Detalle.IdCita +'\n'+
+                    'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                    'Le informamos que su cita ha sido cancelada.';
+
+                escribeLog('Preparando envio de CITA DE EVALUACIÓN CANCELADA a celular: ' + element.Detalle.celular);
+                enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
+
+            };
+        });
+    });
+
+    // ---------------------------------------------------------------------
+    // Proceso de envio de notificación de Citas Reagendadas
+    // ---------------------------------------------------------------------
+
+    cron.schedule('0 */3 * * * *',() => {
+        // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
+        escribeLog("Corre proceso para notificaciones de Citas Reagendadas");
+        obtenInformacionMensajes(connection, {tipoNotifica: "11"} ,result => {
+            escribeLog("dentro de obtenDatosCitasREagendadas App");
+            
+            escribeLog(result);
+    
+            var Datos = JSON.stringify(result);    
+            let jsonParsedArray = JSON.parse(Datos);
+            
+            
+            for (let index = 0; index < jsonParsedArray[0].length; index++) {
+                const element = jsonParsedArray[0][index];
+                
+                element.Fecha = dateFormat(element.Detalle.Fecha, "dd/mm/yyyy HH:MM:ss")
+                element.FechaRegistro = dateFormat(element.Detalle.FechaRegistro, "dd/mm/yyyy HH:MM:ss")
+                mailOptions.to = element.Detalle.email;
+                mailOptions.subject = "Cita Cambia y Gana Reagendada " ;
+                mailOptions.template = 'CitaReagenda'
+                mailOptions.context = element.Detalle;
+                escribeLog(mailOptions);
+                
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) {
+                        //result.status(500).send(error.message);
+                        escribeError('Correo inválido' + err.message);
+                    } else {
+                        escribeLog("Correo enviado");
+                        
+                        marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
+                            escribeLog("marcando notificación como enviado");
+                            escribeLog(JSON.stringify(result));
+                        
+                        });
+                    }
+                });
+
+                const whatsBody =  '*CITA DE EVALUACIÓN REAGENDADA* \n\n '+
+                '*TALER:* '+ element.Detalle.Taller +'\n'+
+                '*Domicilio:* ' + element.Detalle.Domicilio + '\n'+
+                '*Num. Cita:* ' + element.Detalle.IdCita +'\n'+
+                '*Fecha de la Cita:* '+ element.Detalle.Fecha +'\n\n'+ 
+                '_Le solicitamos presentarse 15 mins. antes de su cita._';
+
+                const smsBody =  'CITA DE EVALUACIÓN REAGENDADA\n\n '+
+                    'TALER: '+ element.Detalle.Taller +'\n'+
+                    'Domicilio: ' + element.Detalle.Domicilio + '\n'+
+                    'Num. Cita: ' + element.Detalle.IdCita +'\n'+
+                    'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
+                    'Le solicitamos presentarse 15 mins. antes de su cita.';
+
+                escribeLog('Preparando envio de CITA DE EVALUACIÓN REAGENDADA a celular: ' + element.Detalle.celular);
+                enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
+
+            };
+        });
+    });
+
+
 // ---------------------------------------------------------------------
 // Proceso de envio de notificación de Citas de Instalación
 // ---------------------------------------------------------------------
 
 cron.schedule('0 */5 * * * *',() => {
-    let ts = new Date();
+    //let ts = new Date();
     // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
-    console.log(ts.toString() + " Corre proceso para notificaciones de Citas de Instalación");
+    escribeLog(" Corre proceso para notificaciones de Citas de Instalación");
     obtenInformacionMensajes(connection, {tipoNotifica: "2"} ,result => {
-        console.log("dentro de obtenDatosCitasInstalacion App");
+        escribeLog("dentro de obtenDatosCitasInstalacion App");
         
-        console.log(result);
+        escribeLog(result);
 
         var Datos = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(Datos);
@@ -628,14 +759,14 @@ cron.schedule('0 */5 * * * *',() => {
             mailOptions.subject = "Cita de instalación Cambia y Gana " ;
             mailOptions.template = 'CitaInstalacion'
             mailOptions.context = element.Detalle;
-            console.log(mailOptions);
+            escribeLog(mailOptions);
             
             transporter.sendMail(mailOptions, (err, info) => {
                 if (err) {
                     //result.status(500).send(error.message);
-                    console.log('Correo inválido' + err.message);
+                    escribeError('Correo inválido' + err.message);
                 } else {
-                    console.log("Correo enviado");
+                    escribeLog("Correo enviado");
                     
                     marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
                         console.log("marcando notificación como enviado");
@@ -659,7 +790,7 @@ cron.schedule('0 */5 * * * *',() => {
                 'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
                 'Le solicitamos presentarse 15 mins. antes de su cita.';
 
-            console.log('Preparando envio de CITA DE INSTALACIÓN a celular: ' + element.Detalle.celular);
+            escribeLog('Preparando envio de CITA DE INSTALACIÓN a celular: ' + element.Detalle.celular);
             enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         };
 
@@ -672,13 +803,14 @@ cron.schedule('0 */5 * * * *',() => {
 // ---------------------------------------------------------------------
 
 cron.schedule('0 */6 * * * *',() => {
-    let ts = new Date();
-    // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
-    console.log(ts.toString() + " Corre proceso para notificaciones de Citas de Remoción");
+    //console.log(new Date().format("yyyy-mm-dd HH:MM:ss l") + " Corre proceso para notificaciones de Citas de Remoción");
+    escribeLog( "Corre proceso para notificaciones de Citas de Remoción");
     obtenInformacionMensajes(connection, {tipoNotifica: "2"} ,result => {
-        console.log("dentro de obtenDatosCitasRemocion App");
+        //console.log("dentro de obtenDatosCitasRemocion App");
+        escribeLog( "dentro de obtenDatosCitasRemocion App");
         
-        console.log(result);
+        //console.log(result);
+        escribeLog(result);
 
         var Datos = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(Datos);
@@ -697,13 +829,17 @@ cron.schedule('0 */6 * * * *',() => {
             transporter.sendMail(mailOptions, (err, info) => {
                 if (err) {
                     //result.status(500).send(error.message);
-                    console.log('Correo inválido' + err.message);
+                    //console.log('Correo inválido' + err.message);
+                    escribeError('Correo inválido' + err.message);
                 } else {
-                    console.log("Correo enviado");
+                    //console.log("Correo enviado");
+                    escribeLog('Correo enviado');
                     
                     marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
-                        console.log("marcando notificación como enviado");
-                        console.log(JSON.stringify(result));
+                        //console.log("marcando notificación como enviado");
+                        //console.log(JSON.stringify(result));
+                        escribeLog("marcando notificación como enviado");
+                        escribeLog(JSON.stringify(result));
                     
                     });
                 }
@@ -723,7 +859,8 @@ cron.schedule('0 */6 * * * *',() => {
                 'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
                 'Le solicitamos presentarse 15 mins. antes de su cita.';
 
-            console.log('Preparando envio de CITA DE REMOCIÓN a celular: ' + element.Detalle.celular);
+            //console.log('Preparando envio de CITA DE REMOCIÓN a celular: ' + element.Detalle.celular);
+            escribeLog('Preparando envio de CITA DE REMOCIÓN a celular: ' + element.Detalle.celular)
             enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
         };
 
@@ -740,8 +877,8 @@ function enviaMensajesCel (celNumber , whatsBody , smsBody ) {
                 from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
                 to: 'whatsapp:+521' + celNumber
             }) 
-    .then(message => console.log('WhatsApp ID : ' + message.sid +' '+ message.status))
-    .catch(e => console.error('Mensaje WhatsApp no enviado: '+ e)) 
+    .then(message => escribeLog('WhatsApp ID : ' + message.sid +' '+ message.status))
+    .catch(e => escribeError('Mensaje WhatsApp no enviado: '+ e)) 
     .done();
                 
     twClientSms.messages
@@ -752,12 +889,21 @@ function enviaMensajesCel (celNumber , whatsBody , smsBody ) {
                 statusCallback: 'http://8256-200-194-5-98.ngrok.io/status-msg',
                 to: '+521'+ celNumber
             })
-    .then(message => console.log('SMS ID '+ message.sid+' '+ message.status))
+    .then(message => escribeLog('SMS ID '+ message.sid+' '+ message.status))
     //.catch(e => console.error(`[Cita de evaluaión - SMS] : ${e.message}`, e)));
-    .catch(e => console.error('Mensaje SMS no enviado: '+ e));
+    .catch(e => escribeError('Mensaje SMS no enviado: '+ e));
 
 }
 
+function escribeLog(mensaje) {
+    ts = new Date();
+    console.log( dateFormat(ts, "yyyy-mm-dd HH:MM:ss l") + " - " + mensaje);
+}
+
+function escribeError(error) {
+    ts = new Date()
+    console.error( dateFormat(ts, "yyyy-mm-dd HH:MM:ss l") + " - " + error);
+}
 //--------------------------------------------------------------------------------//
 
 app.listen(3000, () => {
