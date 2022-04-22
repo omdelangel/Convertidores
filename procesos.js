@@ -86,6 +86,17 @@ function marcaMensajeEnviado(connection, data, callback) {
     });
 }
 
+function marcaCitasVencidas(connection, data, callback) {
+    let spSQL = "Call spVenceCitas(?)";
+    let query =mysql.format(spSQL, [data.fecha])
+    console.log(query);
+    
+    connection.query(query, function(err, result) {
+        if (err) throw err;
+        callback(result);
+    });
+}
+
 module.exports = {
     aplicaFondoReserva, 
     avisosBajoConsumo, 
@@ -94,5 +105,6 @@ module.exports = {
     marcaReciboEnviado, 
     obtenDatosRecibos, 
     obtenInformacionMensajes,
-    marcaMensajeEnviado 
+    marcaMensajeEnviado,
+    marcaCitasVencidas 
 };

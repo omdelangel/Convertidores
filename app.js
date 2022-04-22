@@ -10,7 +10,7 @@ require("dotenv").config();
 
 const {aplicaFondoReserva, avisosBajoConsumo, avisosCitas, 
        cortePeriodo, marcaReciboEnviado, obtenDatosRecibos, 
-       obtenInformacionMensajes, marcaMensajeEnviado } = require("./procesos");
+       obtenInformacionMensajes, marcaMensajeEnviado, marcaCitasVencidas } = require("./procesos");
 
 const log = require("./logs");
 const { getMaxListeners } = require("./logs");
@@ -62,12 +62,12 @@ app.get("/cortePeriodo", (req, res) => {
 
 // Proceso de Aplicacion Fondeo de Reserva
 cron.schedule('1 53,55,57,59 23 * * *',() => {
-    console.log(new Date().toString() + " Corre proceso de aplicación del Fondo de Reserva");
+    escribeLog("Corre proceso de aplicación del Fondo de Reserva");
     var res;
     aplicaFondoReserva(connection, {fecha: "2021-11-16"} ,result => {
-        console.log("dentro de AplicaFondo");
+        escribeLog("dentro de AplicaFondo");
         const logName = "FondoReserva_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(JSON.stringify(result));
+        escribeLog(JSON.stringify(result));
         log.setItem(logName, JSON.stringify(result));
         //res.json(result);
     });
@@ -76,14 +76,28 @@ cron.schedule('1 53,55,57,59 23 * * *',() => {
 
 // Proceso de Corte del Periodo
 cron.schedule('1 52,54,56,58 23 * * *',() => {
-    console.log(new Date().toString() + " Corre proceso de corte Periodo");
+    escribeLog("Corre proceso de corte Periodo");
     cortePeriodo(connection, {fecha: "2021-11-16"} ,result => {
-        console.log("dentro de cortePeriodo");
+        escribeLog("dentro de cortePeriodo");
         const logName = "CortePeriodo_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(JSON.stringify(result));
+        escribeLog(JSON.stringify(result));
         log.setItem(logName, JSON.stringify(result));
     });
 });
+
+// Proceso de vencimiento de citas
+
+cron.schedule('58 59 23 * * *',() => {
+    escribeLog("Corre proceso de vencimiento de citas");
+    const cfecha = dateFormat(new Date(), "yyyy-mm-dd");
+    marcaCitasVencidas(connection, {fecha: cfecha} ,result => {
+        escribeLog("dentro de vencimiento de citas");
+        const logName = "CitasVencidas_" + new Date().toString().split(" ").join("_")+".json";
+        escribeLog(JSON.stringify(result));
+        log.setItem(logName, JSON.stringify(result));
+    });
+});
+
 
 var transporter = nodemailer.createTransport({
     //host: 'smtp.ethereal.email',
@@ -498,7 +512,6 @@ cron.schedule('5 */5 17 * * *',() => {
 
     });
 });
-
 
 
 // Proceso de envio de notificación de Citas
