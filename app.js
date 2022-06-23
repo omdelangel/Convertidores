@@ -866,7 +866,7 @@ cron.schedule('0 */6 * * * *',() => {
                 '_Le solicitamos presentarse 15 mins. antes de su cita._';
 
             const smsBody =  'CITA PARA REMOCIÓN DE CONVERTIDOR\n\n '+
-                'TALER: '+ element.Detalle.Taller +'\n'+
+                'TALLER: '+ element.Detalle.Taller +'\n'+
                 'Domicilio: ' + element.Detalle.Domicilio + '\n'+
                 'Num. Cita: ' + element.Detalle.IdCita +'\n'+
                 'Fecha de la Cita: '+ element.Detalle.Fecha +'\n\n'+ 
@@ -880,32 +880,108 @@ cron.schedule('0 */6 * * * *',() => {
     });
 });
 
+
+// ------------------------------------------------------------------------------
+// Proceso de envio de notificación a Mesa de Autorización (Compliance) para los 
+// casos de los Concesionarios que han completado la entrega de su documentación
+// ------------------------------------------------------------------------------
+
+cron.schedule('0 */1 * * * *',() => {
+    //console.log(new Date().format("yyyy-mm-dd HH:MM:ss l") + " Corre proceso para notificaciones de Citas de Remoción");
+    escribeLog( "Corre proceso para notificaciones a Mesas de Autorización (Compliance)");
+    obtenInformacionMensajes(connection, {tipoNotifica: "12"} ,result => {
+        //console.log("dentro de obtenDatosCitasRemocion App");
+        escribeLog( "dentro de obtenDatosMensajeCompliance");
+        
+        
+        var Datos = JSON.stringify(result);    
+        let jsonParsedArray = JSON.parse(Datos);
+        
+
+        
+        for (let index = 0; index < jsonParsedArray[0].length; index++) {
+            const element = jsonParsedArray[0][index];
+            escribeLog('Elemento: ' + element);   
+            element.Fecha = dateFormat(element.Detalle.Fecha, "dd/mm/yyyy HH:MM:ss")
+            
+            mailOptions.to = element.Detalle.email;
+            mailOptions.subject = "Notificación de Documentación Completa " ;
+            mailOptions.template = 'DocumentacionCompleta'
+            mailOptions.context = element.Detalle;
+            console.log(mailOptions);
+            
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) {
+                    escribeError('Correo inválido' + err.message);
+                } else {
+                    escribeLog('Correo enviado');
+                    
+                    marcaMensajeEnviado(connection, {IdMensaje: element.IdMensajeria } ,result => {
+                        escribeLog("marcando notificación como enviado");
+                        escribeLog(JSON.stringify(result));
+                    });
+                }
+            });
+
+            escribeLog('SMS Habilitado: ' + process.env.SMS_ENABLED);
+            escribeLog('WHATSAPP Habilitado: ' + process.env.WHATSAPP_ENABLED);
+
+            if (process.env.SMS_ENABLED || process.env.WHATSAPP_ENABLED) {
+                const whatsBody =  '*NOTIFICACIÓN DE DOCUMENTACION COMPLETA* \n\n '+
+                    '*Concecionario:* '+ element.Detalle.Concesionario +'\n'+
+                    '*Vehículo:* ' + element.Detalle.Vehiculo + '\n'+
+                    '*Placas:* ' + element.Detalle.Placa + '\n'+
+                    '*Síndicato:* ' + element.Detalle.Sindicato +'\n'+
+                    '*Fecha de entrega:* '+ element.Detalle.Fecha +'\n\n'+ 
+                    '_Para su conocimiento a fin de proceder con la validación de la documentación._';
+
+                const smsBody =  'NOTIFICACIÓN DE DOCUMENTACION COMPLETA\n\n '+
+                    'Concecionario: '+ element.Detalle.Concesionario +'\n'+
+                    'Vehículo: ' + element.Detalle.Vehiculo + '\n'+
+                    'Placas: ' + element.Detalle.Placa + '\n'+
+                    'Síndicato: ' + element.Detalle.Sindicato +'\n'+
+                    'Fecha de entrega: '+ element.Detalle.Fecha +'\n\n'+ 
+                    'Para su conocimiento a fin de proceder con la validación de la documentación.';
+
+                escribeLog('Preparando envio de NOTIFICACIÓN DE DOCUMENTACION COMPLETA a celular: ' + element.Detalle.celular)
+               enviaMensajesCel(element.Detalle.celular, whatsBody, smsBody );
+            }
+        };
+
+    });
+});
+
+
 /*-------------------------------------------------------------------------------
 //                     Envia mensajes Cel
 /*-------------------------------------------------------------------------------*/
 function enviaMensajesCel (celNumber , whatsBody , smsBody ) {
-    twClient.messages
-    .create({
-                body: whatsBody,
-                from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
-                to: 'whatsapp:+521' + celNumber
-            }) 
-    .then(message => escribeLog('WhatsApp ID : ' + message.sid +' '+ message.status))
-    .catch(e => escribeError('Mensaje WhatsApp no enviado: '+ e)) 
-    .done();
-                
-    twClientSms.messages
-    .create({
-                body: smsBody,
-                //messagingServiceSid: 'MG47d9401c0eba00f148a46798067d7c6a',
-                from: process.env.SMS_SENDER,
-                statusCallback: 'http://8256-200-194-5-98.ngrok.io/status-msg',
-                to: '+521'+ celNumber
-            })
-    .then(message => escribeLog('SMS ID '+ message.sid+' '+ message.status))
-    //.catch(e => console.error(`[Cita de evaluaión - SMS] : ${e.message}`, e)));
-    .catch(e => escribeError('Mensaje SMS no enviado: '+ e));
-
+    
+    if (process.env.WHATSAPP_ENABLED==true) {
+         
+        twClient.messages
+        .create({
+                    body: whatsBody,
+                    from: process.env.WHATSAPP_SENDER,   //'whatsapp:+14155238886',
+                    to: 'whatsapp:+521' + celNumber
+                }) 
+        .then(message => escribeLog('WhatsApp ID : ' + message.sid +' '+ message.status))
+        .catch(e => escribeError('Mensaje WhatsApp no enviado: '+ e)) 
+        .done();
+    }
+    
+    if (process.env.SMS_ENABLED==true) {
+        twClientSms.messages
+        .create({
+                    body: smsBody,
+                    from: process.env.SMS_SENDER,
+                    statusCallback: 'http://8256-200-194-5-98.ngrok.io/status-msg',
+                    to: '+521'+ celNumber
+                })
+        .then(message => escribeLog('SMS ID '+ message.sid+' '+ message.status))
+        .catch(e => escribeError('Mensaje SMS no enviado: '+ e));
+        
+    }
 }
 
 function escribeLog(mensaje) {
