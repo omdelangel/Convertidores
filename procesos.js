@@ -97,6 +97,35 @@ function marcaCitasVencidas(connection, data, callback) {
     });
 }
 
+function obtenEdoCtaResumen( connection, params, callback) {
+    console.log('connection: ' + connection);
+    console.log('Params: ' + JSON.stringify(params));
+    let spSQL = "Call spEdoCtaResumen(Date(?))";
+    console.log('Fecha: ' + params.fecha);
+    let query =mysql.format(spSQL, [params.fecha]);
+    console.log("query: " + query);
+    connection.query(query, function(err, result) {
+        if (err) {
+            console.log(err);
+            throw err;
+
+        }
+        callback(result);
+    });
+    
+}
+
+function obtenEdoCtaMovimientos( connection, data, callback) {
+    let spSQL = "Call spEdoCtaMovimientos(?, Date(?))";
+    let query =mysql.format(spSQL, [data.contrato, data.fecha])
+    console.log("query: " + query);
+    connection.query(query, function(err, result) {
+        if (err) throw err;
+        return callback(result);
+    });
+}
+
+
 module.exports = {
     aplicaFondoReserva, 
     avisosBajoConsumo, 
@@ -106,5 +135,7 @@ module.exports = {
     obtenDatosRecibos, 
     obtenInformacionMensajes,
     marcaMensajeEnviado,
-    marcaCitasVencidas 
+    marcaCitasVencidas ,
+    obtenEdoCtaResumen,
+    obtenEdoCtaMovimientos
 };

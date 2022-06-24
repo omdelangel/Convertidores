@@ -10,12 +10,19 @@ require("dotenv").config();
 
 const {aplicaFondoReserva, avisosBajoConsumo, avisosCitas, 
        cortePeriodo, marcaReciboEnviado, obtenDatosRecibos, 
-       obtenInformacionMensajes, marcaMensajeEnviado, marcaCitasVencidas } = require("./procesos");
+       obtenInformacionMensajes, marcaMensajeEnviado, marcaCitasVencidas,
+       obtenEdoCtaResumen, obtenEdoCtaMovimientos } = require("./procesos");
 
 const log = require("./logs");
 const { getMaxListeners } = require("./logs");
 const { json } = require("express/lib/response");
-
+/* -----   Estados de Cuenta -----*/
+const PdfPrinter =  require("pdfmake");
+const fs = require('fs');
+const fonts = require("./fonts");
+const styles = require("./styles");
+const PdfDynamicContent =  require("./formatos/edos-cuenta");
+// -----------------------------------
 // const dateFmt = require('dateformat');
 
 
@@ -60,7 +67,7 @@ app.get("/cortePeriodo", (req, res) => {
 
 // Calendario de tareas que correrán en el servidor
 
-// Proceso de Aplicacion Fondeo de Reserva
+// Proceso de Aplicacion Fondo de Reserva
 cron.schedule('1 53,55,57,59 23 * * *',() => {
     escribeLog("Corre proceso de aplicación del Fondo de Reserva");
     var res;
@@ -149,52 +156,8 @@ var mailOptions = {
 
 
 
-/*
-// Proceso de envio de recibos
-cron.schedule('20 5 23 * * *',() => {
-    console.log(new Date().toString() + " Corre proceso Obtener información para emision de recibos - email");
-    //console.log(`${BASE.URL}`);
-    //let dia = dateFmt(new Date(), "yyyy-mm-dd");
-    let dia = "2021-10-15";
-    console.log(dia);
-
-    obtenDatosRecibos(connection, {fecha: dia} ,result => {
-        console.log("dentro de Notificaciones " + __dirname);
-        const logName = "RecibosMail_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
-        var DatosRecibos = JSON.stringify(result);    
-        let jsonParsedArray = JSON.parse(DatosRecibos);
-        
-        for (let index = 0; index < jsonParsedArray[0].length; index++) {
-            const element = jsonParsedArray[0][index];
-            
-            mailOptions.to = element.email;  
-            mailOptions.subject = "Recibo de consumo " + element.NumTicket;
-            mailOptions.context = element;
-            mailOptions.template = 'recibo'
-            console.log(mailOptions);
-            console.log("--------------------------------------");
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) {
-                    console.log('Correo inválido' + err.message);
-                } else {
-                    console.log("Correo enviado");
-                    marcaReciboEnviado(connection, {IdConsumo: element.Id } ,result => {
-                        console.log("marcando consumo como notificado");
-                        console.log(JSON.stringify(result));
-                        //log.setItem(logName, JSON.stringify(result));
-                    });
-                }
-            });
-        }
-    });
-
-
-});
-*/
-
 // -----------------------------------------------------------------
-// Proceso de envio de recibos
+// Proceso de envío de recibos
 // -----------------------------------------------------------------
 cron.schedule('20 5 23 * * *',() => {
     console.log(new Date().toString() + " Corre proceso Obtener información para emision de recibos - email");
@@ -207,7 +170,7 @@ cron.schedule('20 5 23 * * *',() => {
         //obtenDatosRecibos(connection, {fecha: dia} ,result => {
         console.log("dentro de Notificaciones " + __dirname);
         const logName = "RecibosMail_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
+        console.log(JSON.stringify(result));
         var DatosRecibos = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(DatosRecibos);
         
@@ -270,7 +233,7 @@ cron.schedule('20 5 23 * * *',() => {
 });
 
 // -----------------------------------------------------------------
-// Proceso de envio de comprobante de pago (no consumo)
+// Proceso de envío de comprobante de pago (no consumo)
 // -----------------------------------------------------------------
 cron.schedule('20 5 23 * * *',() => {
     console.log(new Date().toString() + " Corre proceso Obtener información para emision de comprobantes de pago (No consumo) - email");
@@ -283,7 +246,7 @@ cron.schedule('20 5 23 * * *',() => {
         //obtenDatosRecibos(connection, {fecha: dia} ,result => {
         console.log("dentro de Recibo de Pago Pendiente " + __dirname);
         const logName = "ReciboPagoMail_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
+        console.log(JSON.stringify(result));
         var DatosComprobante = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(DatosComprobante);
         
@@ -339,54 +302,16 @@ cron.schedule('20 5 23 * * *',() => {
 });
 
 
-// Proceso de envio de notificación por bajo consumo
-/*
-cron.schedule('22 * 23 * * *',() => {
-    console.log(new Date().toString() + " Corre proceso para notificaciones");
-    avisosBajoConsumo(connection, {fecha: "2021-11-04"} ,result => {
-        console.log("dentro de obtenDatosNotificaciones App");
-        const logName = "BajoConsumo_" + new Date().toString().split(" ").join("_")+".json";
-        //console.log(result);
-        //log.setItem(logName, JSON.stringify(result));
-
-        var Datos = JSON.stringify(result);    
-        let jsonParsedArray = JSON.parse(Datos);
-        
-        
-        for (let index = 0; index < jsonParsedArray[0].length; index++) {
-            const element = jsonParsedArray[0][index];
-
-            mailOptions.to = element.email;
-            mailOptions.subject = "Notificación de bajo consumo " ;
-            mailOptions.template = 'bajo-consumo'
-            mailOptions.context = element;
-            console.log(mailOptions);
-            
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) {
-                    //result.status(500).send(error.message);
-                    console.log('Correo inválido' + err.message);
-                } else {
-                    //result.status(200).json(req.body);
-                    console.log("Correo enviado");
-                    console.log(transporter.template);
-                }
-            });
-        };
-
-    });
-});
-*/
 // -----------------------------------------------------------
-// Proceso de envio de notificación por bajo consumo
+// Proceso de envío de notificación por bajo consumo
 // -----------------------------------------------------------
 
-cron.schedule('5,35 * 19 * * *',() => {
+cron.schedule('5,35 * 23 * * *',() => {
     console.log(new Date().toString() + " Corre proceso para notificaciones por bajo consumo");
     obtenInformacionMensajes(connection, {tipoNotifica: "6"} ,result => {
         console.log("dentro de obtenDatosBajoConsumo App");
         const logName = "BajoConsumo_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
+        console.log(JSON.stringify(result));
         //log.setItem(logName, JSON.stringify(result));
 
         var Datos = JSON.stringify(result);    
@@ -448,7 +373,7 @@ cron.schedule('5,35 * 19 * * *',() => {
 });
 
 // ---------------------------------------------------------------------
-// Proceso de envio de notificación por Adeudo de litros "No consumidos
+// Proceso de envío de notificación por Adeudo de litros "No consumidos
 // ---------------------------------------------------------------------
 
 cron.schedule('5 */5 17 * * *',() => {
@@ -456,7 +381,7 @@ cron.schedule('5 */5 17 * * *',() => {
     obtenInformacionMensajes(connection, {tipoNotifica: "7"} ,result => {
         console.log("dentro de obtenDatosAdeudoNoConsumo App");
         const logName = "AdeudoNoConsumo_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
+        console.log(JSON.stringify(result));
         //log.setItem(logName, JSON.stringify(result));
 
         var Datos = JSON.stringify(result);    
@@ -513,59 +438,18 @@ cron.schedule('5 */5 17 * * *',() => {
     });
 });
 
+// ---------------------------------------------------------------------
+// Proceso de envío de notificación de Citas
+// ---------------------------------------------------------------------
 
-// Proceso de envio de notificación de Citas
-//cron.schedule('0 */2 * * * *',() => {
-/*    
-cron.schedule('0 * * * * *',() => {
-    let ts = new Date();
-    // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
-    console.log(ts.toString() + " Corre proceso para notificaciones de Citas");
-    avisosCitas(connection, {fecha: dateFormat(ts, "yyyy-mm-dd HH:MM:ss"), intervalo: 2} ,result => {
-        console.log("dentro de obtenDatosCitas App");
-        //const logName = "Citas_" + new Date().toString().split(" ").join("_")+".json";
-        console.log(result);
-        //log.setItem(logName, JSON.stringify(result));
-
-        var Datos = JSON.stringify(result);    
-        let jsonParsedArray = JSON.parse(Datos);
-        
-        
-        for (let index = 0; index < jsonParsedArray[0].length; index++) {
-            const element = jsonParsedArray[0][index];
-
-            element.Fecha = dateFormat(element.Fecha, "dd/mm/yyyy HH:MM:ss")
-            element.FechaRegistro = dateFormat(element.FechaRegistro, "dd/mm/yyyy HH:MM:ss")
-            mailOptions.to = element.email;
-            mailOptions.subject = "Cita Cambia y Gana " ;
-            mailOptions.template = 'Cita'
-            mailOptions.context = element;
-            console.log(mailOptions);
-            
-            transporter.sendMail(mailOptions, (err, info) => {
-                if (err) {
-                    //result.status(500).send(error.message);
-                    console.log('Correo inválido' + err.message);
-                } else {
-                    //result.status(200).json(req.body);
-                    console.log("Correo enviado");
-                    console.log(transporter.template);
-                }
-            });
-        };
-
-    });
-});
-*/
-// Proceso de envio de notificación de Citas
-    cron.schedule('0 */1 * * * *',() => {
+cron.schedule('0 */1 * * * *',() => {
         //let ts = new Date();
         // console.log(new Date().toString() + " Corre proceso para notificaciones de Citas");
         escribeLog("Corre proceso para notificaciones de Citas");
         obtenInformacionMensajes(connection, {tipoNotifica: "1"} ,result => {
             escribeLog("dentro de obtenDatosCitas App");
             //const logName = "Citas_" + new Date().toString().split(" ").join("_")+".json";
-            escribeLog(result);
+            escribeLog(JSON.stringify(result));
             //log.setItem(logName, JSON.stringify(result));
     
             var Datos = JSON.stringify(result);    
@@ -620,7 +504,7 @@ cron.schedule('0 * * * * *',() => {
     });
 
     // ---------------------------------------------------------------------
-    // Proceso de envio de notificación de Citas Canceladas
+    // Proceso de envío de notificación de Citas Canceladas
     // ---------------------------------------------------------------------
 
     cron.schedule('0 */2 * * * *',() => {
@@ -630,7 +514,7 @@ cron.schedule('0 * * * * *',() => {
         obtenInformacionMensajes(connection, {tipoNotifica: "10"} ,result => {
             escribeLog("dentro de obtenDatosCitasCanceladas App");
             
-            escribeLog(result);
+            escribeLog(JSON.stringify(result));
     
             var Datos = JSON.stringify(result);    
             let jsonParsedArray = JSON.parse(Datos);
@@ -684,7 +568,7 @@ cron.schedule('0 * * * * *',() => {
     });
 
     // ---------------------------------------------------------------------
-    // Proceso de envio de notificación de Citas Reagendadas
+    // Proceso de envío de notificación de Citas Reagendadas
     // ---------------------------------------------------------------------
 
     cron.schedule('0 */3 * * * *',() => {
@@ -693,7 +577,7 @@ cron.schedule('0 * * * * *',() => {
         obtenInformacionMensajes(connection, {tipoNotifica: "11"} ,result => {
             escribeLog("dentro de obtenDatosCitasREagendadas App");
             
-            escribeLog(result);
+            escribeLog(JSON.stringify(result));
     
             var Datos = JSON.stringify(result);    
             let jsonParsedArray = JSON.parse(Datos);
@@ -748,7 +632,7 @@ cron.schedule('0 * * * * *',() => {
 
 
 // ---------------------------------------------------------------------
-// Proceso de envio de notificación de Citas de Instalación
+// Proceso de envío de notificación de Citas de Instalación
 // ---------------------------------------------------------------------
 
 cron.schedule('0 */5 * * * *',() => {
@@ -758,7 +642,7 @@ cron.schedule('0 */5 * * * *',() => {
     obtenInformacionMensajes(connection, {tipoNotifica: "2"} ,result => {
         escribeLog("dentro de obtenDatosCitasInstalacion App");
         
-        escribeLog(result);
+        escribeLog(JSON.stringify(result));
 
         var Datos = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(Datos);
@@ -812,7 +696,7 @@ cron.schedule('0 */5 * * * *',() => {
 
 
 // ---------------------------------------------------------------------
-// Proceso de envio de notificación de Citas de Remoción del Convertidor
+// Proceso de envío de notificación de Citas de Remoción del Convertidor
 // ---------------------------------------------------------------------
 
 cron.schedule('0 */6 * * * *',() => {
@@ -823,7 +707,7 @@ cron.schedule('0 */6 * * * *',() => {
         escribeLog( "dentro de obtenDatosCitasRemocion App");
         
         //console.log(result);
-        escribeLog(result);
+        escribeLog(JSON.stringify(result));
 
         var Datos = JSON.stringify(result);    
         let jsonParsedArray = JSON.parse(Datos);
@@ -882,7 +766,7 @@ cron.schedule('0 */6 * * * *',() => {
 
 
 // ------------------------------------------------------------------------------
-// Proceso de envio de notificación a Mesa de Autorización (Compliance) para los 
+// Proceso de envío de notificación a Mesa de Autorización (Compliance) para los 
 // casos de los Concesionarios que han completado la entrega de su documentación
 // ------------------------------------------------------------------------------
 
@@ -901,7 +785,7 @@ cron.schedule('0 */1 * * * *',() => {
         
         for (let index = 0; index < jsonParsedArray[0].length; index++) {
             const element = jsonParsedArray[0][index];
-            escribeLog('Elemento: ' + element);   
+            escribeLog('Elemento: ' + JSON.stringify(element));   
             element.Fecha = dateFormat(element.Detalle.Fecha, "dd/mm/yyyy HH:MM:ss")
             
             mailOptions.to = element.Detalle.email;
@@ -984,6 +868,153 @@ function enviaMensajesCel (celNumber , whatsBody , smsBody ) {
     }
 }
 
+/*-------------------------------------------------------------------------------*/
+//  PROCESO BATCH PARA ESTADOS DE CUENTA
+/*-------------------------------------------------------------------------------*/
+
+app.get("/estados-cuenta", (req, res) => {
+    console.log("Iniciando " );
+    var movtosData=[];
+    var contratosData = [];
+    var pdfObj = [];
+
+    
+    const fechaCorte =  req.query.fechaCorte; 
+    console.log(fechaCorte);
+    //let fechaCorte = dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss");
+    
+    obtenEdoCtaResumen(connection, {fecha: fechaCorte}, result => {
+        contratosData = result;
+        for (let index = 0; index < contratosData[0].length; index++) {
+            const contrato = contratosData[0][index];
+            
+            obtenEdoCtaMovimientos(connection, { contrato: contrato.IdContrato, fecha: fechaCorte }, result => {
+                movtosData = result;
+                console.log("preparando Edo Cta para contrato: " + contrato.IdContrato);
+                pdfObj = new PdfDynamicContent(contrato, movtosData);
+                let docDefinition = {
+                    pageSize: 'LETTER',
+                    pageMargins: [ 40, 50, 40, 60 ],
+                    content: pdfObj.getPdfContent(),
+                    styles: styles,
+                };
+                const printer = new PdfPrinter(fonts);
+
+                let pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+                pdfDoc.pipe(fs.createWriteStream("pdfs/EC_"+contrato.IdContrato+"_20211115.pdf"));
+                pdfDoc.end();
+                pdfDoc.release;
+                pdfObj.destroy;
+            });
+        };
+    });
+    res.json({'Mensaje': 'Archivo generado exitosamente' });
+});
+
+/*-------------------------------------------------------------------------------*/
+//  Proceso de envío de Estados de Cuenta
+/*-------------------------------------------------------------------------------*/
+
+cron.schedule('38 * 10 * * *',() => {
+    //console.log(new Date().format("yyyy-mm-dd HH:MM:ss l") + " Corre proceso para notificaciones de Citas de Remoción");
+    escribeLog( "Corre proceso para envío de Estado de Cuenta");
+    var contratosData = [];
+    var pdfObj = [];
+
+    
+    //const fechaCorte =  '2022-06-22';
+    
+    //let fechaCorte = dateFormat(new Date(), "yyyy-mm-dd HH:MM:ss");
+    
+    obtenInformacionMensajes(connection, {tipoNotifica: "13"} ,result => {
+        escribeLog( "dentro de obtenDatosMensaje Estados de Cuenta");
+        
+        
+        var Datos = JSON.stringify(result);    
+        let jsonParsedArray = JSON.parse(Datos);
+        
+
+        
+        for (let index = 0; index < jsonParsedArray[0].length; index++) {
+            const contrato = jsonParsedArray[0][index];
+            escribeLog('Elemento: ' + JSON.stringify(contrato));   
+            contrato.Fecha = dateFormat(contrato.Detalle.Fecha, "dd/mm/yyyy HH:MM:ss")
+   
+            const fechaCorte =  contrato.Detalle.FechaCorte;
+            let complementoNombreArchivo = fechaCorte.toString().substring(0,4) + fechaCorte.toString().substring(5,7) + fechaCorte.toString().substring(8,10) ;
+            console.log( complementoNombreArchivo );
+            
+            obtenEdoCtaMovimientos(connection, { contrato: contrato.Detalle.IdContrato, fecha: fechaCorte }, result => {
+                //movtosData = result;
+                console.log("preparando Edo Cta para contrato: " + contrato.IdContrato);
+                pdfObj = new PdfDynamicContent(contrato, result);
+                let docDefinition = {
+                    pageSize: 'LETTER',
+                    pageMargins: [ 40, 50, 40, 60 ],
+                    content: pdfObj.getPdfContent(),
+                    styles: styles,
+                };
+                const printer = new PdfPrinter(fonts);
+
+                let pdfDoc = printer.createPdfKitDocument(docDefinition);
+                let ArchivoCompleto = `${__dirname}`+'/pdfs/EC_'+contrato.IdContrato+'_'+ complementoNombreArchivo + '.pdf';
+                console.log('Directorio base: ' + `${__dirname}` )
+                console.log('Directorio de Edos de Cuenta: ' + ArchivoCompleto )
+
+                pdfDoc.pipe(fs.createWriteStream(ArchivoCompleto));
+                pdfDoc.end();
+                pdfDoc.release;
+                pdfObj.destroy;
+                
+                //Envia correo a concesionario con el Estado de cuenta
+                mailOptions.to = contrato.Detalle.email;
+                mailOptions.subject = "Estado de cuenta Cambia y Gana " ;
+                mailOptions.template = 'vacio';
+                //mailOptions.context = element.Detalle;
+                mailOptions.text = 'Le hacemos llegar el estado de cuenta como parte del proceso de corte del periodo. ';
+                mailOptions.attachments =  [{
+                                                   filename: 'header-recibo@2x.png',
+                                                   path: __dirname +'\\img\\header-recibo@2x.png',
+                                                   cid: 'logo' 
+                                               },
+                                               {
+                                                   filename: 'header-recibo@2x.png',
+                                                   path: __dirname +'\\img\\footer recibo.png',
+                                                   cid: 'foot' 
+                                               
+                                               },
+                                               { 
+                                                   filename: "EC_" + contrato.IdContrato + '_' + complementoNombreArchivo + '.pdf', 
+                                                   path: ArchivoCompleto
+                                               }
+                                           ];
+
+                console.log(mailOptions);
+                
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) {
+                        escribeError('Correo inválido ' + err.message);
+                    } else {
+                        escribeLog('Correo enviado');
+                        marcaMensajeEnviado(connection, {IdMensaje: contrato.IdMensajeria } ,result => {
+                            escribeLog("marcando notificación como enviado");
+                            escribeLog(JSON.stringify(result));
+                        
+                        })
+                    }
+                });
+
+
+            });
+        };
+    });
+
+});
+
+/*-------------------------------------------------------------------------------*/
+//  Funciones para escribir en la consola
+/*-------------------------------------------------------------------------------*/
 function escribeLog(mensaje) {
     ts = new Date();
     console.log( dateFormat(ts, "yyyy-mm-dd HH:MM:ss l") + " - " + mensaje);

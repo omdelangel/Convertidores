@@ -21,6 +21,8 @@
     "nodemailer": "^6.7.2",
     "nodemailer-express-handlebars": "^4.0.0",
     "nodemon": "^2.0.16",
-    "twilio": "^3.76.0"
+    "pdfmake": "^0.2.5",
+    "twilio": "^3.76.0",
+    "underscore": "^1.13.4"
   }
 }
